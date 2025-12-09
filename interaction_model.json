@@ -1,0 +1,238 @@
+{
+    "interactionModel": {
+        "languageModel": {
+            "invocationName": "jarvis",
+            "intents": [
+                {
+                    "name": "AMAZON.CancelIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.HelpIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.NoIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.YesIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.StopIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.NavigateHomeIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.FallbackIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AskJarvisIntent",
+                    "slots": [
+                        {
+                            "name": "question",
+                            "type": "AMAZON.SearchQuery"
+                        }
+                    ],
+                    "samples": [
+                        "{question}",
+                        "dime {question}",
+                        "di me {question}",
+                        "cuentame {question}",
+                        "cuenta me {question}",
+                        "explicame {question}",
+                        "explica me {question}",
+                        "que opinas de {question}",
+                        "sabes {question}",
+                        "como funciona {question}",
+                        "quien es {question}",
+                        "donde esta {question}",
+                        "analiza {question}",
+                        "calcula {question}",
+                        "necesito {question}",
+                        "ayuda con {question}",
+                        "quiero saber {question}",
+                        "por que {question}",
+                        "cuando {question}",
+                        "como {question}",
+                        "que es {question}",
+                        "cual es {question}"
+                    ]
+                },
+                {
+                    "name": "ControlDeviceIntent",
+                    "slots": [
+                        {
+                            "name": "action",
+                            "type": "ActionType"
+                        },
+                        {
+                            "name": "device",
+                            "type": "DeviceType"
+                        }
+                    ],
+                    "samples": [
+                        "{action} {device}",
+                        "{action} la {device}",
+                        "{action} el {device}",
+                        "{action} las {device}",
+                        "{action} los {device}",
+                        "por favor {action} la {device}",
+                        "puedes {action} la {device}",
+                        "necesito {action} la {device}",
+                        "quiero {action} la {device}"
+                    ]
+                }
+            ],
+            "types": [
+                {
+                    "name": "ActionType",
+                    "values": [
+                        {
+                            "name": {
+                                "value": "encender",
+                                "synonyms": [
+                                    "prender",
+                                    "activa",
+                                    "activar",
+                                    "enciende"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "apagar",
+                                "synonyms": [
+                                    "desactivar",
+                                    "apaga",
+                                    "cierra"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "DeviceType",
+                    "values": [
+                        {
+                            "name": {
+                                "value": "luz",
+                                "synonyms": [
+                                    "luces",
+                                    "foco",
+                                    "bombilla",
+                                    "lampara"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "monitor",
+                                "synonyms": [
+                                    "pantalla"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "comedor",
+                                "synonyms": [
+                                    "luz comedor",
+                                    "luz del comedor",
+                                    "la de comedor"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "cocina",
+                                "synonyms": [
+                                    "luz cocina",
+                                    "luz de la cocina",
+                                    "la de cocina"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "patio trasero",
+                                "synonyms": [
+                                    "luz patio trasero",
+                                    "patio atras",
+                                    "luz del patio trasero",
+                                    "patio de atras"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "patio delantero",
+                                "synonyms": [
+                                    "luz patio delantero",
+                                    "patio adelante",
+                                    "entrada",
+                                    "luz de la entrada"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "faroles",
+                                "synonyms": [
+                                    "luces exterior",
+                                    "jardin",
+                                    "los faroles"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "baño",
+                                "synonyms": [
+                                    "luz baño",
+                                    "luz del baño",
+                                    "la del baño"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "living",
+                                "synonyms": [
+                                    "interruptor living",
+                                    "luz living",
+                                    "luz del living",
+                                    "la del living"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "ventilador",
+                                "synonyms": [
+                                    "aire",
+                                    "el ventilador"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "mueble",
+                                "synonyms": [
+                                    "luz mueble",
+                                    "luz del mueble",
+                                    "la del mueble"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}
