@@ -87,6 +87,22 @@
                         "necesito {action} la {device}",
                         "quiero {action} la {device}"
                     ]
+                },
+                {
+                    "name": "NewTopicIntent",
+                    "slots": [],
+                    "samples": [
+                        "cambiemos de tema",
+                        "hablemos de otra cosa",
+                        "basta",
+                        "para",
+                        "olvida lo que hablamos",
+                        "olvidalo",
+                        "borra la conversacion",
+                        "limpia tu memoria",
+                        "tema nuevo",
+                        "nuevo tema"
+                    ]
                 }
             ],
             "types": [
