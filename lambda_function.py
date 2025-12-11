@@ -17,7 +17,7 @@ logger.setLevel(logging.INFO)
 # --- CONFIGURATION ---
 # Las claves se obtienen de Variables de Entorno en AWS Lambda
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash-exp") 
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash-exp")
 
 def get_system_prompt():
     """Reads the system prompt from the jarvis_prompt.md file."""
@@ -28,24 +28,40 @@ def get_system_prompt():
         logger.error(f"Error reading prompt file: {e}")
         return "Eres Jarvis, asistente virtual." # Fallback
 
-def call_gemini_api(prompt, question):
-    """Calls Gemini API via requests (REST) to avoid library issues."""
+def call_gemini_api(prompt, question, history=None):
+    """
+    Calls Gemini API via requests (REST) to avoid library issues.
+    Supports conversational history.
+    """
     if not GOOGLE_API_KEY:
         return "Error de configuración: Falta la GOOGLE_API_KEY en las variables de entorno."
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GOOGLE_API_KEY}"
-    
+
     headers = {'Content-Type': 'application/json'}
-    
-    # Structure the payload manually with SAFETY SETTINGS DISABLED
+
+    # Start with the system prompt
+    contents = [{
+        "role": "user",
+        "parts": [{"text": f"{prompt}\n\nINSTRUCCION CRÍTICA: Sé breve (máximo 2 oraciones). Sé servicial y usa humor ligero."}]
+    }, {
+        "role": "model",
+        "parts": [{"text": "Entendido. A sus órdenes."}]
+    }]
+
+    # Add conversation history if it exists
+    if history:
+        contents.extend(history)
+
+    # Add the current user question
+    contents.append({
+        "role": "user",
+        "parts": [{"text": question}]
+    })
+
+    # Structure the payload manually
     data = {
-        "contents": [
-            {
-                "parts": [
-                    {"text": f"{prompt}\n\nUser Question: {question}\n\nINSTRUCCION CRÍTICA: Sé breve (máximo 2 oraciones). Sé servicial y usa humor ligero."}
-                ]
-            }
-        ],
+        "contents": contents,
         "generationConfig": {
             "temperature": 0.7,
             "maxOutputTokens": 1024
@@ -57,38 +73,38 @@ def call_gemini_api(prompt, question):
             {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
         ]
     }
-    
+
     try:
         response = requests.post(url, headers=headers, json=data)
-        response.raise_for_status() 
-        
+        response.raise_for_status()
+
         result_json = response.json()
-        
+
         # Robust extraction
         candidates = result_json.get('candidates', [])
         if not candidates:
              if 'error' in result_json:
                  return f"Error API: {result_json['error'].get('message')}"
              return "Error: Respuesta vacía del servidor."
-             
+
         first_candidate = candidates[0]
         content = first_candidate.get('content', {})
         parts = content.get('parts', [])
-        
+
         if parts and 'text' in parts[0]:
             return parts[0]['text']
-            
+
         # If we are here, we didn't find standard text. Check why.
         finish_reason = first_candidate.get('finishReason', 'UNKNOWN')
-        
+
         if finish_reason == 'MAX_TOKENS':
             return "Intente preguntar algo más breve, señor."
-            
+
         if finish_reason == 'SAFETY':
              return "Mis protocolos de seguridad se activaron, y bloquearon esa respuesta."
-             
+
         return f"Respuesta ilegible (Reason: {finish_reason}). Estructura: {str(first_candidate)[:100]}"
-        
+
     except Exception as e:
         logger.error(f"Gemini API Error: {e}")
         return f"Error conectando: {str(e)}"
@@ -115,7 +131,7 @@ def execute_tuya_command(action_word, device_word):
     """Executes Tuya command based on action and device name."""
     try:
         import tinytuya
-        
+
         # Obtener credenciales de variables de entorno
         TUYA_REGION = os.environ.get("TUYA_REGION", "us")
         TUYA_API_KEY = os.environ.get("TUYA_API_KEY")
@@ -142,7 +158,7 @@ def execute_tuya_command(action_word, device_word):
                  device_key = stripped
 
         target_id = DEVICE_MAP.get(device_key)
-        
+
         # Fuzzy search if exact match fails
         if not target_id:
             for key in DEVICE_MAP:
@@ -155,20 +171,20 @@ def execute_tuya_command(action_word, device_word):
             return f"No encontré el dispositivo '{device_word}'. Revise su mapa."
 
         c = tinytuya.Cloud(apiRegion=TUYA_REGION, apiKey=TUYA_API_KEY, apiSecret=TUYA_API_SECRET)
-        
+
         # Action logic
-        is_on = True 
+        is_on = True
         if any(x in action_word.lower() for x in ["apaga", "desactiva", "cierra", "off"]):
             is_on = False
-            
+
         commands = {
             "commands": [
                 {"code": "switch_1", "value": is_on}
             ]
         }
-        
+
         result = c.sendcommand(target_id, commands)
-        
+
         if result and result.get('success'):
             state_str = "encendido" if is_on else "apagado"
             return f"He {state_str} {device_word}."
@@ -186,7 +202,7 @@ class AskJarvisIntentHandler(AbstractRequestHandler):
     def handle(self, handler_input):
         slots = handler_input.request_envelope.request.intent.slots
         question = slots["question"].value if slots["question"].value else None
-        
+
         if not question:
             speech_text = "Señor, necesito que me diga algo. No leo mentes... todavía."
             return handler_input.response_builder.speak(speech_text).ask("¿Qué necesita?").response
@@ -200,21 +216,30 @@ class AskJarvisIntentHandler(AbstractRequestHandler):
              action = "encender"
              if "apaga" in q_lower or "desactiva" in q_lower:
                  action = "apagar"
-                 
+
              # Extraer dispositivo (simple heuristic: remove action word)
              # Esto es basico pero efectivo para "enciende luz comedor"
              device_guess = q_lower.replace("enciende", "").replace("prender", "").replace("activa", "").replace("apaga", "").replace("desactiva", "").replace("por favor", "").replace("jarvis", "").strip()
-             
+
              # Ejecutar logica Tuya directa
              jarvis_response = execute_tuya_command(action, device_guess)
         else:
-            # Call Gemini via REST normally
+            # Conversational memory management
+            session_attr = handler_input.attributes_manager.session_attributes
+            history = session_attr.get("history", [])
+
+            # Call Gemini via REST with history
             system_instruction = get_system_prompt()
-            jarvis_response = call_gemini_api(system_instruction, question)
-            
+            jarvis_response = call_gemini_api(system_instruction, question, history)
+
+            # Update history (and limit its size to avoid large payloads)
+            history.append({"role": "user", "parts": [{"text": question}]})
+            history.append({"role": "model", "parts": [{"text": jarvis_response}]})
+            session_attr["history"] = history[-10:] # Keep last 5 interactions
+
         # Wrap response in SSML to use male voice (Enrique)
         ssml_response = f"<speak><voice name='Enrique'>{jarvis_response}</voice></speak>"
-        ssml_reprompt = f"<speak><voice name='Enrique'>¿Alguna otra instrucción, señor?</voice></speak>"
+        ssml_reprompt = f"<speak><voice name='Enrique'>¿Necesita algo más?</voice></speak>"
 
         return (
             handler_input.response_builder
@@ -233,19 +258,21 @@ class ControlDeviceIntentHandler(AbstractRequestHandler):
 
     def handle(self, handler_input):
         slots = handler_input.request_envelope.request.intent.slots
-        
+
         # Safe extraction of slot values
         action = slots["action"].value if slots.get("action") and slots["action"].value else "encender"
         device = slots["device"].value if slots.get("device") and slots["device"].value else "luz"
-        
+
         # Call shared function
         speech_text = execute_tuya_command(action, device)
-        
+
         ssml_text = f"<speak><voice name='Enrique'>{speech_text}</voice></speak>"
-        
+        ssml_reprompt = f"<speak><voice name='Enrique'>¿Necesita algo más?</voice></speak>"
+
         return (
             handler_input.response_builder
             .speak(ssml_text)
+            .ask(ssml_reprompt)
             .set_card(SimpleCard("Jarvis Home", f"Action: {action} {device}\nResult: {speech_text}"))
             .response
         )
@@ -330,10 +357,28 @@ class RequestLogger(AbstractRequestInterceptor):
     def process(self, handler_input):
         logger.info(f"Incoming Request: {handler_input.request_envelope.request}")
 
+class NewTopicIntentHandler(AbstractRequestHandler):
+    """Handler for NewTopicIntent."""
+    def can_handle(self, handler_input):
+        return is_intent_name("NewTopicIntent")(handler_input)
+
+    def handle(self, handler_input):
+        session_attr = handler_input.attributes_manager.session_attributes
+        session_attr["history"] = []
+        speech_text = "Entendido, he despejado mi memoria. ¿De qué le gustaría hablar ahora?"
+        ssml_text = f"<speak><voice name='Enrique'>{speech_text}</voice></speak>"
+        return (
+            handler_input.response_builder
+            .speak(ssml_text)
+            .ask(ssml_text)
+            .response
+        )
+
 sb = SkillBuilder()
 sb.add_global_request_interceptor(RequestLogger())
 sb.add_request_handler(LaunchRequestHandler())
 sb.add_request_handler(AskJarvisIntentHandler())
+sb.add_request_handler(NewTopicIntentHandler())
 sb.add_request_handler(ControlDeviceIntentHandler())
 sb.add_request_handler(HelpIntentHandler())
 sb.add_request_handler(YesIntentHandler())
